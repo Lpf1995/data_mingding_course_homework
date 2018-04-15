@@ -1,0 +1,416 @@
+---
+title: "Data Mining Homework(NFL  Data)"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Import the packages needed.
+```{r}
+library(Hmisc)
+library(car)
+library(dplyr)
+library(plyr)
+```
+
+
+Import the data set from the csv file and show the first 10 rows of the data.
+```{r}
+nfl_total=read.csv("NFL Play by Play 2009-2017 (v4).csv")
+nfl_total[1:10,]
+```
+As shown above, the data contains American football games information from 2007 to 2017. It's extremely detailed, recording things happened every play of games. Also, the last several columns show probability of certain events as well as estimated points under certain circumstances.
+
+```{r}
+nfl_numeric<-select(nfl_total,yrdln,ydstogo,ydsnet,AirYards,YardsAfterCatch,PlayTimeDiff,yrdline100,Yards.Gained,FieldGoalDistance,Penalty.Yards,ScoreDiff,HomeTimeouts_Remaining_Pre,AwayTimeouts_Remaining_Pre,HomeTimeouts_Remaining_Post,AwayTimeouts_Remaining_Post)
+
+nfl_nominal<-select(nfl_total,DefensiveTeam,ExPointResult,PlayType,Passer,PassLength,PassLocation,Interceptor,Rusher,RunGap,Receiver,ReturnResult,BlockingPlayer,Tackler1,Tackler2,FieldGoalResult,RecFumbTeam,RecFumbPlayer,ChalReplayResult,PenalizedTeam,PenaltyType,PenalizedPlayer,HomeTeam,AwayTeam,Timeout_Team)
+```
+
+
+```{r}
+summary(nfl_nominal)
+```
+```{r}
+summary(nfl_numeric)
+```
+
+
+
+```{r}
+plyr::count(is.na(nfl_numeric[["yrdln"]]))
+hist(nfl_numeric[["yrdln"]])
+boxplot(nfl_numeric[["yrdln"]])
+summary(nfl_numeric[["yrdln"]])
+qqPlot(nfl_numeric[["yrdln"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["ydstogo"]]))
+hist(nfl_numeric[["ydstogo"]])
+boxplot(nfl_numeric[["ydstogo"]])
+summary(nfl_numeric[["ydstogo"]])
+qqPlot(nfl_numeric[["ydstogo"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["ydsnet"]]))
+hist(nfl_numeric[["ydsnet"]])
+boxplot(nfl_numeric[["ydsnet"]])
+summary(nfl_numeric[["ydsnet"]])
+qqPlot(nfl_numeric[["ydsnet"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["AirYards"]]))
+hist(nfl_numeric[["AirYards"]])
+boxplot(nfl_numeric[["AirYards"]])
+summary(nfl_numeric[["AirYards"]])
+qqPlot(nfl_numeric[["AirYards"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["YardsAfterCatch"]]))
+hist(nfl_numeric[["YardsAfterCatch"]])
+boxplot(nfl_numeric[["YardsAfterCatch"]])
+summary(nfl_numeric[["YardsAfterCatch"]])
+qqPlot(nfl_numeric[["YardsAfterCatch"]])
+```
+
+
+```{r}
+plyr::count(is.na(nfl_numeric[["PlayTimeDiff"]]))
+hist(nfl_numeric[["PlayTimeDiff"]])
+boxplot(nfl_numeric[["PlayTimeDiff"]])
+summary(nfl_numeric[["PlayTimeDiff"]])
+qqPlot(nfl_numeric[["PlayTimeDiff"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["yrdline100"]]))
+hist(nfl_numeric[["yrdline100"]])
+boxplot(nfl_numeric[["yrdline100"]])
+summary(nfl_numeric[["yrdline100"]])
+qqPlot(nfl_numeric[["yrdline100"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["Yards.Gained"]]))
+hist(nfl_numeric[["Yards.Gained"]])
+boxplot(nfl_numeric[["Yards.Gained"]])
+summary(nfl_numeric[["Yards.Gained"]])
+qqPlot(nfl_numeric[["Yards.Gained"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["FieldGoalDistance"]]))
+hist(nfl_numeric[["FieldGoalDistance"]])
+boxplot(nfl_numeric[["FieldGoalDistance"]])
+summary(nfl_numeric[["FieldGoalDistance"]])
+qqPlot(nfl_numeric[["FieldGoalDistance"]])
+```
+```{r}
+plyr::count(is.na(nfl_numeric[["Penalty,Yards"]]))
+hist(nfl_numeric[["Penalty.Yards"]])
+boxplot(nfl_numeric[["Penalty.Yards"]])
+summary(nfl_numeric[["Penalty.Yards"]])
+qqPlot(nfl_numeric[["Penalty.Yards"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["ScoreDiff"]]))
+hist(nfl_numeric[["ScoreDiff"]])
+boxplot(nfl_numeric[["ScoreDiff"]])
+summary(nfl_numeric[["ScoreDiff"]])
+qqPlot(nfl_numeric[["ScoreDiff"]])
+```
+
+
+```{r}
+plyr::count(is.na(nfl_numeric[["HomeTimeouts_Remaining_Post"]]))
+hist(nfl_numeric[["HomeTimeouts_Remaining_Post"]])
+boxplot(nfl_numeric[["HomeTimeouts_Remaining_Post"]])
+summary(nfl_numeric[["HomeTimeouts_Remaining_Post"]])
+qqPlot(nfl_numeric[["HomeTimeouts_Remaining_Post"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["AwayTimeouts_Remaining_Post"]]))
+hist(nfl_numeric[["AwayTimeouts_Remaining_Post"]])
+boxplot(nfl_numeric[["AwayTimeouts_Remaining_Post"]])
+summary(nfl_numeric[["AwayTimeouts_Remaining_Post"]])
+qqPlot(nfl_numeric[["AwayTimeouts_Remaining_Post"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["HomeTimeouts_Remaining_Pre"]]))
+hist(nfl_numeric[["HomeTimeouts_Remaining_Pre"]])
+boxplot(nfl_numeric[["HomeTimeouts_Remaining_Pre"]])
+summary(nfl_numeric[["HomeTimeouts_Remaining_Pre"]])
+qqPlot(nfl_numeric[["HomeTimeouts_Remaining_Pre"]])
+```
+
+```{r}
+plyr::count(is.na(nfl_numeric[["AwayTimeouts_Remaining_Pre"]]))
+hist(nfl_numeric[["AwayTimeouts_Remaining_Pre"]])
+boxplot(nfl_numeric[["AwayTimeouts_Remaining_Pre"]])
+summary(nfl_numeric[["AwayTimeouts_Remaining_Pre"]])
+qqPlot(nfl_numeric[["AwayTimeouts_Remaining_Pre"]])
+```
+
+```{r}
+library(lattice)
+library(mice)
+library(VIM)
+aggr(nfl_numeric[,1:11], prop = TRUE, number = TRUE, combined = FALSE) 
+```
+
+```{r}
+md.pattern(nfl_numeric[,1:11])
+```
+
+
+There are several theories for NA values.
+
+Most NA values stands for things that never truly exist.
+For example, as for the attribute "FieldGoalDistance", the attribute makes no sense if there were no goals at all.
+
+Besides, equipment malfunction, data error or refusing of the person interviewed to provide data, things that that can also cause NA in original data set.
+
+
+
+Dealing with missing value: omit missing value.
+Take the "yrdln" as an example.
+It's obvious that the visualization of data does not change after omitting NA values.
+```{r}
+hist(na.omit(nfl_numeric[["yrdln"]]))
+boxplot(na.omit(nfl_numeric[["yrdln"]]))
+summary(na.omit(nfl_numeric[["yrdln"]]))
+qqPlot(na.omit(nfl_numeric[["yrdln"]]))
+```
+
+Dealing with missing value: filling NA with value of largest frequency.
+yrdln
+```{r}
+nfl_yrdln_new<-nfl_total[["yrdln"]]
+temp=density(na.omit(nfl_total[["yrdln"]]),bw=0.5)
+nfl_yrdln_new[which(is.na(nfl_yrdln_new))]<-round(temp$x[which.max(temp$y)])
+hist(nfl_yrdln_new,main="yrdln after_filling")
+hist(nfl_total[["yrdln"]],main="yrdln before_filling")
+boxplot(nfl_yrdln_new,main="yrdln after_filling")
+boxplot(nfl_total[["yrdln"]],main="yrdln before_filling")
+
+```
+
+PlayTimeDiff
+```{r}
+nfl_playtimediff_new<-nfl_total[["PlayTimeDiff"]]
+temp=density(na.omit(nfl_total[["PlayTimeDiff"]]),bw=0.5)
+nfl_playtimediff_new[which(is.na(nfl_playtimediff_new))]<-round(temp$x[which.max(temp$y)])
+hist(nfl_playtimediff_new,main="PlayTimeDiff after_filling")
+hist(nfl_total[["PlayTimeDiff"]],main="PlayTimeDiff before_filling")
+boxplot(nfl_playtimediff_new,main="PlayTimeDiff after_filling")
+boxplot(nfl_total[["PlayTimeDiff"]],main="PlayTimeDiff before_filling")
+
+```
+
+yrdline100
+```{r}
+nfl_yrdline100_new<-nfl_total[["yrdline100"]]
+temp=density(na.omit(nfl_total[["yrdline100"]]),bw=0.5)
+nfl_yrdline100_new[which(is.na(nfl_yrdline100_new))]<-round(temp$x[which.max(temp$y)])
+hist(nfl_yrdline100_new,main="yrdline100 after_filling")
+hist(nfl_total[["yrdline100"]],main="yrdline100 before_filling")
+boxplot(nfl_playtimediff_new,main="yrdline100 after_filling")
+boxplot(nfl_total[["yrdline100"]],main="yrdline100 before_filling")
+
+```
+
+FieldGoalDistance
+```{r}
+nfl_FieldGoalDistance_new<-nfl_total[["FieldGoalDistance"]]
+temp=density(na.omit(nfl_total[["FieldGoalDistance"]]),bw=0.5)
+nfl_FieldGoalDistance_new[which(is.na(nfl_FieldGoalDistance_new) & nfl_total[["FieldGoalResult"]]=="Good")]<-round(temp$x[which.max(temp$y)])
+hist(nfl_FieldGoalDistance_new,main="FieldGoalDistance after_filling")
+hist(nfl_total[["FieldGoalDistance"]],main="FieldGoalDistance before_filling")
+boxplot(nfl_FieldGoalDistance_new,main="FieldGoalDistance after_filling")
+boxplot(nfl_total[["FieldGoalDistance"]],main="FieldGoalDistance before_filling")
+
+```
+
+ScoreDiff
+```{r}
+nfl_ScoreDiff_new<-nfl_total[["ScoreDiff"]]
+temp=density(na.omit(nfl_total[["ScoreDiff"]]),bw=0.5)
+nfl_ScoreDiff_new[which(is.na(nfl_ScoreDiff_new))]<-round(temp$x[which.max(temp$y)])
+hist(nfl_ScoreDiff_new,main="ScoreDiff after_filling")
+hist(nfl_total[["ScoreDiff"]],main="ScoreDiff before_filling")
+boxplot(nfl_ScoreDiff_new,main="ScoreDiff after_filling")
+boxplot(nfl_total[["ScoreDiff"]],main="ScoreDiff before_filling")
+
+```
+
+
+
+
+
+Before beginning some "advanced" missing-value-handling method, we must have a closer look at the NA values.
+
+According to the NA pattern analysis above, the major part of NA come from these attributed: yrdln(840), PlayTimeDiff(444), yrdline100(840), FieldGoalDistance(398740), ScoreDiff(24988).
+
+Some correlation exploration might help to better understand them.
+
+
+
+```{r}
+symnum(cor(nfl_numeric[,1:11],use="complete.obs"))
+```
+
+From the matrix above, it's obvious that "yrdln" and "yrdline100" is exactly the same.
+Take a look of the PlayType of these yard_missing plays.
+
+```{r}
+count(nfl_total[which(is.na(nfl_total[["yrdln"]])),]["PlayType"])
+```
+
+It's obvious that these plays did not end normally. 
+And this can be conformed by analyzing the attribute "down" of them.
+```{r}
+count(nfl_total[which(is.na(nfl_total[["yrdln"]])),]["down"])
+```
+
+Usually a play needed to be ended with a down.
+So it can be sure that the "yrlin" and "yrdline100" missing values have  never existed and there is no need to fill them.
+
+Next, we look at NA in "PlayTimeDiff".
+```{r}
+playtimediff_na<-nfl_total[which(is.na(nfl_total[["PlayTimeDiff"]])),]
+count(playtimediff_na[["PlayType"]])
+```
+
+From the counting result above it's easy to notice that these plays did not end normally.
+Since the number of NA in "PlayTimeDiff" is relatively small, I can check the "desc" of everyone of them and make sure all 444 plays did not end in a usually way.
+So, there is also no need to deal with these 444 NA in "PlayTimeDiff".
+
+When it comes to NA in "ScoreDiff", it's reasonably to check if there was any new score in those plays. 
+```{r}
+count(nfl_total[which(is.na(nfl_total[["ScoreDiff"]])),][["sp"]])
+```
+
+It's obvious the "ScoreDiff" of those plays are the same of the play just happened ahead of them since no new score was gain in those plays.
+
+The following script can fill those NA with the "ScoreDiff" value of the play just ahead of them.
+```{r}
+scorediff_new<-nfl_total[["ScoreDiff"]]
+scorediff_new[which(is.na(scorediff_new))]<-nfl_total[(which(is.na(scorediff_new))-1),"ScoreDiff"]
+
+count(is.na(scorediff_new))
+```
+Still there are 473 NA values so we do it one more time.
+```{r}
+scorediff_new[which(is.na(scorediff_new))]<-nfl_total[(which(is.na(nfl_total[["ScoreDiff"]]))-1),"ScoreDiff"]
+count(is.na(scorediff_new))
+```
+And again.
+```{r}
+scorediff_new[which(is.na(scorediff_new))]<-nfl_total[(which(is.na(nfl_total[["ScoreDiff"]]))-1),"ScoreDiff"]
+count(is.na(scorediff_new))
+```
+Now the NA in "ScoreDiff" are handled properly.
+Visualize it.
+```{r}
+
+hist(scorediff_new)
+boxplot(scorediff_new)
+summary(scorediff_new)
+qqPlot(scorediff_new)
+```
+
+Finally, we start analyzing the NA in "FieldGoalDistance".
+Since there is an attribute named "FieldGoalResult" indicating the result of every field goal, it's better to have it checked before filling NA values.
+```{r}
+ count(nfl_total[which(is.na(nfl_total[["FieldGoalDistance"]])),]["FieldGoalResult"])
+```
+
+A NA in "FieldGoalResult" means that there did not exist any goal.
+
+In addition, 8 goals were blocked.
+
+So just 103 good goals without a distance value need to be filled.
+
+Here two methods are used.
+
+The first method use the correlation between "yrdln" and "FieldGoalDistance".
+
+As it's shown in the correlation matrix, there is strong linear relationship between them .
+
+A linear model is settled to fit them.
+
+```{r}
+lm(FieldGoalDistance~yrdln, data=nfl_numeric)
+```
+
+FieldGoalDistance=0.9998*yrdln+18.0286
+
+```{r}
+fieldgoaldistance_new<-nfl_numeric[["FieldGoalDistance"]]
+fieldgoaldistance_need_fill<-which(is.na(nfl_total["FieldGoalDistance"]) & nfl_total[["FieldGoalResult"]]=="Good")
+fieldgoaldistance_new[fieldgoaldistance_need_fill]<-0.9998*nfl_numeric[fieldgoaldistance_need_fill,"yrdln"]+18.0286
+count(is.na(fieldgoaldistance_new))
+```
+398740-398637=103
+Exactly the 103 good goal NA values are filled.
+Visualize it.
+```{r}
+hist(fieldgoaldistance_new,main = "FieldGoalDistance after_filling")
+boxplot(fieldgoaldistance_new)
+summary(fieldgoaldistance_new)
+qqPlot(fieldgoaldistance_new)
+hist(na.omit(nfl_total[["FieldGoalDistance"]]),main = "FieldGoalDistance before_filling")
+```
+
+The second method use the similarity among cases of the same type.
+Since the missing distance values are all good goals, so it's reasonably to fill them with the distance of largest frequency among all good goals.
+```{r}
+fieldgoaldistance_good<-nfl_total[which(nfl_total[["FieldGoalResult"]]=="Good"),]
+temp=density(na.omit(fieldgoaldistance_good[["FieldGoalDistance"]]),bw=0.5)
+fieldgoaldistance_new2<-nfl_numeric[["FieldGoalDistance"]]
+fieldgoaldistance_new2[fieldgoaldistance_need_fill]<-temp$x[which.max(temp$y)]
+
+```
+Visualize it.
+```{r}
+hist(fieldgoaldistance_new2,main = "FieldGoalDistance after_filling")
+boxplot(fieldgoaldistance_new2)
+summary(fieldgoaldistance_new2)
+qqPlot(fieldgoaldistance_new2)
+hist(na.omit(nfl_total[["FieldGoalDistance"]]),main = "FieldGoalDistance before_filling")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,691 @@
+---
+title: "Data Mining Homework1(Building_Permits.csv)"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+---
+
+
+First, install some packages needed.
+```{r include=FALSE}
+library(Hmisc)
+library(car)
+library(dplyr)
+
+```
+Import the data and have a brief look.
+```{r}
+b_p=read.csv("Building_Permits.csv")
+b_p[1:10,]
+```
+Now, we know the structure of the data.
+
+Nominal attributes: Permit.Type, Street.Number, Street.Name, Street.Suffix, Current.Status, Existing.Use, Proposed.Use, Existing.Construction.Type, Proposed.Construction.Type, Zipcode,  Neighborhood...Analysis.Boundaries
+
+Numeric attributes: Unit, Number.of.Existing.Stories, Number.of.Proposed.Stories, Estimated.Cost, Revised.Stories, Proposed.Units, Plansets, Supervisor.District
+
+Then the summary can be done.
+
+Divide the data set into two data.frame: p_nominal and p_numeric
+```{r}
+b_p_nominal<-select(b_p,Permit.Type, Street.Number, Street.Name, Street.Suffix, Current.Status, Existing.Use, Proposed.Use, Existing.Construction.Type, Proposed.Construction.Type, Zipcode, Plansets, Supervisor.District)
+
+
+b_p_numeric<-select(b_p,Unit, Number.of.Existing.Stories, Number.of.Proposed.Stories, Estimated.Cost, Revised.Cost, Existing.Units, Proposed.Units)
+
+
+```
+Begin the summary.
+
+```{r}
+summary(b_p_numeric)
+```
+```{r}
+
+b_p_nominal[["Permit.Type"]]<-as.factor(b_p_nominal[["Permit.Type"]])
+b_p_nominal[["Street.Number"]]<-as.factor(b_p_nominal[["Street.Number"]])
+b_p_nominal[["Existing.Construction.Type"]]<-as.factor(b_p_nominal[["Existing.Construction.Type"]])
+b_p_nominal[["Proposed.Construction.Type"]]<-as.factor(b_p_nominal[["Proposed.Construction.Type"]])
+b_p_nominal[["Zipcode"]]<-as.factor(b_p_nominal[["Zipcode"]])
+b_p_nominal[["Plansets"]]<-as.factor(b_p_nominal[["Plansets"]])
+b_p_nominal[["Supervisor.District"]]<-as.factor(b_p_nominal[["Supervisor.District"]])
+summary(b_p_nominal)
+```
+Above we count the the top 5 items in each attribute. If this is not enough, the following script can count the frequency of all items once existed in a given attribute. The "x" stand for the name of the item, the "freq" is the frequency calculated. 
+In addition, a bar plot is also given if some "visualization" is required.
+```{r}
+library(plyr)
+library(Hmisc)
+plyr::count(b_p[["Permit.Type"]])
+b_p_permit_type_counts<-plyr::count(b_p[["Permit.Type"]])$freq
+names(b_p_permit_type_counts)<-plyr::count(b_p[["Permit.Type"]])$x
+barplot(b_p_permit_type_counts,main="Permit Type")
+```
+Visualization begins.
+Visualize Unit.
+From the QQ plot below, it is clearly the Unit does not fit the normal distribution.
+```{r}
+plyr::count(is.na(b_p[["Unit"]]))
+hist(b_p[["Unit"]])
+boxplot(b_p[["Unit"]])
+summary(b_p[["Unit"]])
+qqPlot(b_p[["Unit"]])
+```
+
+
+According to the summary above, we can get the position of data with in-normal units numbers, which include unit=0 and units more than 759.5(Q3+1.5IQR).
+```{r}
+b_p_unit_innormal<-dplyr::filter(b_p,Unit==0 | Unit>759.5)
+summary(b_p_unit_innormal[["Unit"]])
+```
+
+
+
+Visualize "Number.of.Existing.Stories.
+```{r}
+summary(b_p[["Number.of.Existing.Stories"]])
+hist(b_p[["Number.of.Existing.Stories"]])
+boxplot(b_p[["Number.of.Existing.Stories"]])
+qqPlot(b_p[["Number.of.Existing.Stories"]])
+```
+Visualize Number.of.Proposed.Stories.
+```{r}
+summary(b_p[["Number.of.Proposed.Stories"]])
+hist(b_p[["Number.of.Proposed.Stories"]])
+boxplot(b_p[["Number.of.Proposed.Stories"]])
+qqPlot(b_p[["Number.of.Proposed.Stories"]])
+
+```
+Visualize Estimated.Cost.
+```{r}
+summary(b_p[["Estimated.Cost"]])
+plyr::count(is.na(b_p[["Estimated.Cost"]])) #getting the number of data points except NA points.
+hist(b_p[["Estimated.Cost"]])
+boxplot(b_p[["Estimated.Cost"]])
+qqPlot(b_p[["Estimated.Cost"]])
+```
+According to the summary and hist gram above, it's highly possible that some too big and too small values are incorrect.
+So I decide to cut them off.
+```{r}
+b_p_estimated_cost_new<-dplyr::filter(b_p,Estimated.Cost<4e+05 & Estimated.Cost>100)
+summary(b_p_estimated_cost_new[["Estimated.Cost"]])
+plyr::count(is.na(b_p_estimated_cost_new[["Estimated.Cost"]])) #getting the number of data points after cutting possibly incorrect values.
+hist(b_p_estimated_cost_new[["Estimated.Cost"]])
+boxplot(b_p_estimated_cost_new[["Estimated.Cost"]])
+qqPlot(b_p_estimated_cost_new[["Estimated.Cost"]])
+```
+
+Visualize Revised,Cost.
+```{r}
+summary(b_p[["Revised.Cost"]])
+plyr::count(is.na(b_p[["Revised.Cost"]])) #getting the number of data points except NA points.
+hist(b_p[["Revised.Cost"]])
+boxplot(b_p[["Revised.Cost"]])
+qqPlot(b_p[["Revised.Cost"]])
+```
+According to the summary and hist gram above, it's highly possible that some too big and too small values are incorrect.
+So I decide to cut them off.
+```{r}
+b_p_revised_cost_new<-dplyr::filter(b_p,Revised.Cost>100 & Revised.Cost<4e+05)
+summary(b_p_revised_cost_new[["Revised.Cost"]])
+plyr::count(is.na(b_p_revised_cost_new[["Revised.Cost"]]))  #getting the number of data points after cutting possibly incorrect values.
+hist(b_p_revised_cost_new[["Revised.Cost"]])
+boxplot(b_p_revised_cost_new[["Revised.Cost"]])
+qqPlot(b_p_revised_cost_new[["Revised.Cost"]])
+```
+Use the Revised.Cost to cover Existing.Cost, fill NAs in Revised.Cost with its Estimated.
+In this way I come up with a list named "b_p_cost" and visualize it.
+```{r}
+b_p_cost<-b_p[["Revised.Cost"]]
+b_p_cost[which(is.na(b_p_cost))]<-b_p[["Estimated.Cost"]][which(is.na(b_p_cost))]
+summary(b_p_cost)
+plyr::count(is.na(b_p_cost))
+hist(b_p_cost)
+boxplot(b_p_cost)
+qqPlot(b_p_cost)
+```
+Using the same method cutting possible incorrect values and visualize it again.
+```{r}
+b_p_cost_new<-b_p_cost[which(b_p_cost>100 & b_p_cost<4e+05)]
+summary(b_p_cost_new)
+plyr::count(is.na(b_p_cost_new))  #getting the number of data points after cutting possibly incorrect values.
+hist(b_p_cost_new)
+boxplot(b_p_cost_new)
+qqPlot(b_p_cost_new)
+```
+
+
+
+Visualize Existing.Units
+```{r}
+
+summary(b_p[["Existing.Units"]])
+hist(b_p[["Existing.Units"]])
+boxplot(b_p[["Existing.Units"]])
+qqPlot(b_p[["Existing.Units"]])
+```
+
+
+Visualize Proposed.Units.
+```{r}
+summary(b_p[["Proposed.Units"]])
+hist(b_p[["Proposed.Units"]])
+boxplot(b_p[["Proposed.Units"]])
+qqPlot(b_p[["Proposed.Units"]])
+```
+
+
+
+About missing data. 
+First, list the missing data using mice package.
+The blanks in column "Existing.Use" and "Proposed.Use" are filled with NA.
+Then, focus on what we think is important, visualize the pattern of the missing data using VIM package.
+```{r}
+library(VIM)
+library(lattice)
+library(mice)
+b_p_new<-cbind(b_p[["Permit.Number"]],b_p_nominal,b_p_numeric)
+#md.pattern(b_p_new)
+b_p_missing_visualize=dplyr::select(b_p,Existing.Use,Proposed.Use,Existing.Construction.Type,Proposed.Construction.Type,Unit,Number.of.Existing.Stories,Number.of.Proposed.Stories,Existing.Units,Proposed.Units,Plansets,Supervisor.District)
+b_p_missing_visualize<-cbind(b_p_cost,b_p_missing_visualize)
+b_p_missing_visualize[["Existing.Use"]][which( b_p_missing_visualize[["Existing.Use"]]=="")]<-NA
+b_p_missing_visualize[["Proposed.Use"]][which( b_p_missing_visualize[["Proposed.Use"]]=="")]<-NA
+#b_p_missing_visualize[["Revised.Cost"]][which( b_p_missing_visualize[["Revised.Cost"]]<50)]<-NA
+aggr(b_p_missing_visualize, prop = TRUE, number = TRUE, combined = TRUE) 
+```
+```{r}
+aggr(b_p_missing_visualize, prop = TRUE, number = TRUE, combined = FALSE) 
+```
+
+There are several theories for NA values.
+
+Most NA values stands for things that never truly exist.
+For example, as for the Permit.Type "new construction", the attribute Existing.Unit makes no sense. So NA is introduced to deal with this kind of situation.
+
+Besides, equipment malfunction, data error or refusing of the person interviewed to provide data, things that that can also cause NA in original data set.
+
+
+
+Dealing with missing data:omitting missing value.
+This can be achieve using following script(take the Proposed.Units as an example).
+It's obvious that this move does not change the visualization of a given attribute.
+```{r}
+summary(na.omit(b_p[["Proposed.Units"]]))
+hist(na.omit(b_p[["Proposed.Units"]]))
+```
+Dealing with missing data: filling NA with value of largest frequency.
+When dealing with nominal attributes, take "Proposed.Construction.Type" as an example.
+```{r}
+b_p_proposed_construction_type_new<-b_p[["Proposed.Construction.Type"]]
+b_p_proposed_construction_type_new[is.na(b_p_proposed_construction_type_new)]<-plyr::count(b_p_proposed_construction_type_new)$x[which.max(plyr::count(b_p_proposed_construction_type_new)$freq)]
+hist(b_p_proposed_construction_type_new,main="P.Con.Type after_filling")
+hist(b_p[["Proposed.Construction.Type"]],main="P.Con.Type before_filling")
+```
+As for numeric attributes, the script below is used.
+Unit
+```{r}
+b_p_unit_new<-b_p[["Unit"]]
+temp=density(na.omit(b_p[["Unit"]]),bw=1)
+b_p_unit_new[which(is.na(b_p_unit_new))]<-temp$x[which.max(temp$y)]
+hist(b_p_unit_new,main="Unit after_filling")
+hist(b_p[["Unit"]],main="Unit before_filling")
+boxplot(b_p_unit_new,main="Unit after_filling")
+boxplot(b_p[["Unit"]],main="Unit before_filling")
+```
+Number.of.Existing.Stories
+```{r}
+b_p_number_of_existing_stories_new<-b_p[["Number.of.Existing.Stories"]]
+temp=density(na.omit(b_p[["Number.of.Existing.Stories"]]),bw=1)
+b_p_number_of_existing_stories_new[which(is.na(b_p_number_of_existing_stories_new))]<-temp$x[which.max(temp$y)]
+hist(b_p_number_of_existing_stories_new,main="N.of.Existing.S after_filling")
+hist(b_p[["Number.of.Existing.Stories"]],main="N.of.Existing.S before_filling")
+boxplot(b_p_number_of_existing_stories_new,main="N.of.Existing.S after_filling")
+boxplot(b_p[["Number.of.Existing.Stories"]],main="N.of.Existing.S before_filling")
+```
+
+Number.of.Proposed.Stories
+```{r}
+b_p_number_of_proposed_stories_new<-b_p[["Number.of.Proposed.Stories"]]
+temp=density(na.omit(b_p[["Number.of.Proposed.Stories"]]),bw=1)
+b_p_number_of_proposed_stories_new[which(is.na(b_p[["Number.of.Proposed.Stories"]]))]<-temp$x[which.max(temp$y)]
+hist(b_p_number_of_proposed_stories_new,main="N.of.Proposed.S after_filling")
+hist(b_p[["Number.of.Proposed.Stories"]],main="N.of.Proposed.S before_filling")
+boxplot(b_p_number_of_proposed_stories_new,main="N.of.Proposed.S after_filling")
+boxplot(b_p[["Number.of.Proposed.Stories"]],main="N.of.Proposed.S before_filling")
+```
+Existing.Units
+```{r}
+b_p_existing_units_new<-b_p[["Existing.Units"]]
+temp=density(na.omit(b_p[["Existing.Units"]]),bw=1)
+b_p_existing_units_new[which(is.na(b_p_existing_units_new))]<-temp$x[which.max(temp$y)]
+hist(b_p_existing_units_new,main="E.Units after_filling")
+hist(b_p[["Existing.Units"]],main="E.Units before_filling")
+boxplot(b_p_existing_units_new,main="E.Units after_filling")
+boxplot(b_p[["Existing.Units"]],main="E.Units before_filling")
+```
+
+Proposed.Units
+```{r}
+b_p_proposed_units_new<-b_p[["Proposed.Units"]]
+temp=density(na.omit(b_p[["Proposed.Units"]]),bw=1)
+b_p_proposed_units_new[which(is.na(b_p_proposed_units_new))]<-temp$x[which.max(temp$y)]
+hist(b_p_proposed_units_new,main="P.Units after_filling")
+hist(b_p[["Proposed.Units"]],main="P.Units before_filling")
+boxplot(b_p_proposed_units_new,main="P.Units after_filling")
+boxplot(b_p[["Proposed.Units"]],main="P.Units before_filling")
+```
+
+b_p_cost
+```{r}
+b_p_cost_new<-b_p_cost
+temp=density(na.omit(b_p_cost),bw=1)
+b_p_cost_new[which(is.na(b_p_cost_new))]<-temp$x[which.max(temp$y)]
+hist(b_p_cost_new,main="cost after_filling")
+hist(b_p_cost,main="cost before_filling")
+boxplot(b_p_cost_new,main="cost after_filling")
+boxplot(b_p_cost,main="cost before_filling")
+```
+
+Before using some "advanced" method to fill NA values, we must have a closer look at the data set.
+At first, we should know the number of types of permits and the features of each one.
+```{r}
+count(b_p[["Permit.Type"]])
+```
+Type1: new construction, "Existing.Units" and "Number.of.Existing.Units" should be NA, "Unit" should be 0.
+Type2: new construction wood frame, "Units" and "Existing.Units" should be 0.
+Type3: additional alterations or repairs, nothing special.
+Type4: sign-erect, "Number.of.Proposed.Stories" and "Proposed.Units" should be 0.
+Type5: grade or quarry or fill or excavate, "Number.of.Existing.Stories" and "Number.of.Proposed.Stories" should be NA, "Existing.Units", "Proposed.Units" and "Unit" should be 0.
+Type6: demolitions, "Unit" should be 0, "Number.of.Proposed.Stories" and "Proposed.Units" should be NA.
+Type7:wall or painted sign, "Number.of.Proposed.Stories" and "Proposed.Units" should be NA, "Existing.Units" should be 0.
+Type8: otc alterations permits, nothing special.
+
+Divide the numeric part of the data.frame by type.
+```{r}
+b_p_missing_numeric_with_type<-select(b_p,Permit.Type,Unit,Number.of.Existing.Stories,Number.of.Proposed.Stories,Existing.Units,Proposed.Units)
+b_p_missing_numeric_with_type<-cbind(b_p_cost,b_p_missing_numeric_with_type)
+b_p_numeric_type1<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==1),]
+b_p_numeric_type2<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==2),]
+b_p_numeric_type3<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==3),]
+b_p_numeric_type4<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==4),]
+b_p_numeric_type5<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==5),]
+b_p_numeric_type6<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==6),]
+b_p_numeric_type7<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==7),]
+b_p_numeric_type8<-b_p_missing_numeric_with_type[which(b_p_missing_numeric_with_type[["Permit.Type"]]==8),]
+
+
+```
+
+Use correlation among attributes to fill NA values.
+Package "mice" is introduced and it's used for imputing.
+```{r}
+library(mice)
+```
+
+
+
+Type 1
+```{r}
+
+symnum(cor(b_p_numeric_type1[,c(1,5,7)],use="complete.obs"))
+```
+
+There exist some data which all there meaningful attributes are missed. It's reasonably to discard them.
+```{r}
+library(DMwR)
+b_p_numeric_type1_1<-b_p_numeric_type1[-manyNAs(b_p_numeric_type1[,c(1,5,7)],0.68),]
+```
+
+
+According to the correlation matrix, there is a strong linear relationship between b_p_cost and Number.of.Proposed.Stories as well as between b_p_cost and Proposed.Units.
+So two linear models are fitted.
+
+```{r}
+lm(Number.of.Proposed.Stories~b_p_cost,data=b_p_numeric_type1_1)
+lm(Proposed.Units~b_p_cost,data=b_p_numeric_type1_1)
+
+```
+
+Using the fitted models to fill NA values.
+```{r}
+b_p_numeric_type1_new<-b_p_numeric_type1_1
+b_p_numeric_type1_new[which(is.na(b_p_numeric_type1_new[["Number.of.Proposed.Stories"]])),"Number.of.Proposed.Stories"]<-floor((9.293e-8)*b_p_numeric_type1_new[which(is.na(b_p_numeric_type1_new[["Number.of.Proposed.Stories"]])),"b_p_cost"]+5.07)
+
+b_p_numeric_type1_new[which(is.na(b_p_numeric_type1_new[["Proposed.Units"]])),"Proposed.Units"]<-floor((1.17e-6)*b_p_numeric_type1_new[which(is.na(b_p_numeric_type1_new[["Proposed.Units"]])),"b_p_cost"]+49.59)
+
+#b_p_numeric_type1_new<-select(b_p_numeric_type1_new,b_p_cost,Unit,Number.of.Existing.Stories,Number.of.Proposed.Stories,Existing.Units,Proposed.Units)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+Type2
+```{r}
+
+symnum(cor(b_p_numeric_type2[,c(1,5,7)],use="complete.obs"))
+```
+
+
+
+```{r message=FALSE}
+tempData_type2 <- mice( b_p_numeric_type2[,c(1,5,7)] ,m=3,maxit=10,meth="pmm")
+
+
+```
+```{r}
+completedData <- complete(tempData_type2,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+#completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+#completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+#completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type2_new<-b_p_numeric_type2
+b_p_numeric_type2_new[,c(1,5,7)]<-completedData
+summary(completedData)
+```
+
+
+
+
+
+
+Type3
+```{r}
+
+symnum(cor(b_p_numeric_type3[,c(1,3,4,5,6,7)],use="complete.obs"))
+```
+
+
+```{r message=FALSE}
+tempData_type3 <- mice( b_p_numeric_type3[,c(1,3,4,5,6,7)] ,m=3,maxit=10,meth="pmm")
+
+
+```
+```{r}
+completedData <- complete(tempData_type3,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type3_new<-b_p_numeric_type3
+b_p_numeric_type3_new[,c(1,3,4,5,6,7)]<-completedData
+summary(completedData)
+```
+
+
+
+Type4
+```{r}
+
+symnum(cor(b_p_numeric_type4[,c(1,3,4,6)],use="complete.obs"))
+```
+```{r message=FALSE}
+tempData_type4 <- mice( b_p_numeric_type4[,c(1,3,4,6)] ,m=3,maxit=10,meth="pmm")
+
+
+```
+
+```{r}
+completedData <- complete(tempData_type4,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+#completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+#completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type4_new<-b_p_numeric_type4
+b_p_numeric_type4_new[,c(1,3,4,6)]<-completedData
+summary(completedData)
+```
+
+
+
+Type5, as it is described before, its only meaningful attribute is the "b_p_cost".
+```{r}
+count(is.na(b_p_numeric_type5[["b_p_cost"]]))
+```
+Type5 does not need NA filling.
+```{r}
+b_p_numeric_type5_new<-b_p_numeric_type5
+```
+
+
+
+Type6
+```{r}
+
+symnum(cor(b_p_numeric_type6[,c(1,4,6)],use="complete.obs"))
+```
+
+```{r message=FALSE}
+tempData_type6 <- mice( b_p_numeric_type6[,c(1,4,6)] ,m=3,maxit=10,meth="pmm")
+
+
+```
+
+```{r}
+completedData <- complete(tempData_type6,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+#completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+#completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type6_new<-b_p_numeric_type6
+b_p_numeric_type6_new[,c(1,4,6)]<-completedData
+summary(completedData)
+```
+
+
+
+Type7
+```{r}
+
+symnum(cor(b_p_numeric_type7[,c(1,3)],use="complete.obs"))
+```
+
+```{r message=FALSE}
+tempData_type7 <- mice( b_p_numeric_type7[,c(1,3)] ,m=3,maxit=10,meth="pmm")
+
+
+```
+
+```{r}
+completedData <- complete(tempData_type7,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+#completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+#completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+#completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+#completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type7_new<-b_p_numeric_type7
+b_p_numeric_type7_new[,c(1,3)]<-completedData
+summary(completedData)
+```
+
+
+
+Type8
+```{r}
+
+symnum(cor(b_p_numeric_type8[,c(1,3,4,5,6,7)],use="complete.obs"))
+```
+
+```{r include=FALSE}
+tempData_type8 <- mice( b_p_numeric_type8[,c(1,3,4,5,6,7)] ,m=1,maxit=2,meth="pmm")
+
+
+```
+```{r}
+completedData <- complete(tempData_type8,1)
+#completedData[["Unit"]]<-floor(completedData[["Units"]])
+completedData[["Number.of.Existing.Stories"]]<-floor(completedData[["Number.of.Existing.Stories"]])
+completedData[["Number.of.Proposed.Stories"]]<-floor(completedData[["Number.of.Proposed.Stories"]])
+completedData[["Existing.Units"]]<-floor(completedData[["Existing.Units"]])
+completedData[["Proposed.Units"]]<-floor(completedData[["Proposed.Units"]])
+
+b_p_numeric_type8_new<-b_p_numeric_type8
+b_p_numeric_type8_new[,c(1,3,4,5,6,7)]<-completedData
+summary(completedData)
+```
+
+Combine those data and visualize it.
+```{r}
+b_p_missing_with_type_new<-rbind(b_p_numeric_type1_new[,1:7],b_p_numeric_type2_new,b_p_numeric_type3_new,b_p_numeric_type4_new,b_p_numeric_type5,b_p_numeric_type6_new,b_p_numeric_type7_new,b_p_numeric_type8_new)
+
+hist(b_p_missing_with_type_new[["Unit"]])
+hist(b_p_missing_with_type_new[["Number.of.Existing.Stories"]])
+hist(b_p_missing_with_type_new[["Number.of.Proposed.Stories"]])
+hist(b_p_missing_with_type_new[["Existing.Units"]])
+hist(b_p_missing_with_type_new[["Proposed.Units"]])
+hist(b_p_missing_with_type_new[["b_p_cost"]])
+
+```
+Box plot.
+```{r}
+
+boxplot(b_p_missing_with_type_new[["Unit"]])
+boxplot(b_p_missing_with_type_new[["Number.of.Existing.Stories"]])
+boxplot(b_p_missing_with_type_new[["Number.of.Proposed.Stories"]])
+boxplot(b_p_missing_with_type_new[["Existing.Units"]])
+boxplot(b_p_missing_with_type_new[["Proposed.Units"]])
+boxplot(b_p_missing_with_type_new[["b_p_cost"]])
+```
+
+
+
+
+
+
+
+
+
+Deal with missing values by exploring exploring similarities among objects.
+
+This method can be simply described as "The value of a given attribute of objects can be very close to each other if those objects are of the same type".
+
+In this data, the type of each object is given. So a simply way using similarities of objects is filling NA with most frequent value of that type of objects.
+
+The features of each type of permission are described above.
+
+Type1
+```{r}
+b_p_numeric_type1_new2<-b_p_numeric_type1
+b_p_numeric_type1_new2[which(is.na(b_p_numeric_type1_new[,1])),1]<-round(mean(b_p_numeric_type1[,1],na.rm = TRUE))
+b_p_numeric_type1_new2[which(is.na(b_p_numeric_type1_new[,5])),5]<-round(mean(b_p_numeric_type1[,5],na.rm = TRUE))
+b_p_numeric_type1_new2[which(is.na(b_p_numeric_type1_new[,7])),7]<-round(mean(b_p_numeric_type1[,7],na.rm = TRUE))
+```
+
+
+Type2
+```{r}
+b_p_numeric_type2_new2<-b_p_numeric_type2
+b_p_numeric_type2_new2[which(is.na(b_p_numeric_type2_new[,1])),1]<-round(mean(b_p_numeric_type2[,1],na.rm = TRUE))
+b_p_numeric_type2_new2[which(is.na(b_p_numeric_type2_new[,5])),5]<-round(mean(b_p_numeric_type2[,5],na.rm = TRUE))
+b_p_numeric_type2_new2[which(is.na(b_p_numeric_type2_new[,7])),7]<-round(mean(b_p_numeric_type2[,7],na.rm = TRUE))
+```
+
+Type3
+```{r}
+b_p_numeric_type3_new2<-b_p_numeric_type3
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,1])),1]<-round(mean(b_p_numeric_type3[,1],na.rm = TRUE))
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,3])),3]<-round(mean(b_p_numeric_type3[,3],na.rm = TRUE))
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,4])),4]<-round(mean(b_p_numeric_type3[,4],na.rm = TRUE))
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,5])),5]<-round(mean(b_p_numeric_type3[,5],na.rm = TRUE))
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,6])),6]<-round(mean(b_p_numeric_type3[,6],na.rm = TRUE))
+b_p_numeric_type3_new2[which(is.na(b_p_numeric_type3_new[,7])),7]<-round(mean(b_p_numeric_type3[,7],na.rm = TRUE))
+```
+
+Type4
+```{r}
+b_p_numeric_type4_new2<-b_p_numeric_type4
+b_p_numeric_type4_new2[which(is.na(b_p_numeric_type4_new[,1])),1]<-round(mean(b_p_numeric_type4[,1],na.rm = TRUE))
+b_p_numeric_type4_new2[which(is.na(b_p_numeric_type4_new[,3])),3]<-round(mean(b_p_numeric_type4[,3],na.rm = TRUE))
+b_p_numeric_type4_new2[which(is.na(b_p_numeric_type4_new[,4])),4]<-round(mean(b_p_numeric_type4[,4],na.rm = TRUE))
+b_p_numeric_type4_new2[which(is.na(b_p_numeric_type4_new[,6])),6]<-round(mean(b_p_numeric_type4[,6],na.rm = TRUE))
+```
+
+Type5
+```{r}
+b_p_numeric_type5_new2<-b_p_numeric_type5
+```
+
+Type6
+```{r}
+b_p_numeric_type6_new2<-b_p_numeric_type6
+b_p_numeric_type6_new2[which(is.na(b_p_numeric_type6_new[,1])),1]<-round(mean(b_p_numeric_type6[,1],na.rm = TRUE))
+b_p_numeric_type6_new2[which(is.na(b_p_numeric_type6_new[,3])),3]<-round(mean(b_p_numeric_type6[,3],na.rm = TRUE))
+b_p_numeric_type6_new2[which(is.na(b_p_numeric_type6_new[,4])),4]<-round(mean(b_p_numeric_type6[,4],na.rm = TRUE))
+b_p_numeric_type6_new2[which(is.na(b_p_numeric_type6_new[,6])),6]<-round(mean(b_p_numeric_type6[,6],na.rm = TRUE))
+```
+
+
+Type7
+```{r}
+b_p_numeric_type7_new2<-b_p_numeric_type7
+b_p_numeric_type7_new2[which(is.na(b_p_numeric_type7_new[,1])),1]<-round(mean(b_p_numeric_type7[,1],na.rm = TRUE))
+b_p_numeric_type7_new2[which(is.na(b_p_numeric_type7_new[,3])),3]<-round(mean(b_p_numeric_type7[,3],na.rm = TRUE))
+
+```
+
+Type8
+```{r}
+b_p_numeric_type8_new2<-b_p_numeric_type8
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,1])),1]<-round(mean(b_p_numeric_type8[,1],na.rm = TRUE))
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,3])),3]<-round(mean(b_p_numeric_type8[,3],na.rm = TRUE))
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,4])),4]<-round(mean(b_p_numeric_type8[,4],na.rm = TRUE))
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,5])),5]<-round(mean(b_p_numeric_type8[,5],na.rm = TRUE))
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,6])),6]<-round(mean(b_p_numeric_type8[,6],na.rm = TRUE))
+b_p_numeric_type8_new2[which(is.na(b_p_numeric_type8_new[,7])),7]<-round(mean(b_p_numeric_type8[,7],na.rm = TRUE))
+```
+
+Combine those data and visualize it.
+Hist plot.
+```{r}
+b_p_missing_with_type_new2<-rbind(b_p_numeric_type1_new2[,1:7],b_p_numeric_type2_new2,b_p_numeric_type3_new2,b_p_numeric_type4_new2,b_p_numeric_type5,b_p_numeric_type6_new2,b_p_numeric_type7_new2,b_p_numeric_type8_new2)
+
+hist(b_p_missing_with_type_new2[["Unit"]])
+hist(b_p_missing_with_type_new2[["Number.of.Existing.Stories"]])
+hist(b_p_missing_with_type_new2[["Number.of.Proposed.Stories"]])
+hist(b_p_missing_with_type_new2[["Existing.Units"]])
+hist(b_p_missing_with_type_new2[["Proposed.Units"]])
+hist(b_p_missing_with_type_new2[["b_p_cost"]])
+
+```
+
+Box plot.
+```{r}
+
+boxplot(b_p_missing_with_type_new2[["Unit"]])
+boxplot(b_p_missing_with_type_new2[["Number.of.Existing.Stories"]])
+boxplot(b_p_missing_with_type_new2[["Number.of.Proposed.Stories"]])
+boxplot(b_p_missing_with_type_new2[["Existing.Units"]])
+boxplot(b_p_missing_with_type_new2[["Proposed.Units"]])
+boxplot(b_p_missing_with_type_new2[["b_p_cost"]])
+```
+
+
+
+
+
+
+
+
+
+
+
