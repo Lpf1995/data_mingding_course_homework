@@ -1,0 +1,87 @@
+---
+title: "Homework2-Frequent Itmesets Mining"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Pre-procossing
+  The Building_Permits data set is choosen for frequenct itemsets mining. Before the analysis, the dataset must be imported and changed to the suitable format.
+   First, import the package "arules" which is the famous R package specilized in frequent itemsets mining. The package "arulesViz" is also needed for visualization of the rules found. The package "dplyr" which is very useful in data pre-processing is also imported.
+
+```{r}
+library(dplyr)
+library(arules)
+library(arulesViz)
+```
+
+```{r}
+b_p<-read.csv("data_mining_homework/Building_Permits.csv")
+```
+
+  Extract the attributes needed for frequent itemsets mining, especially binary attributes.
+
+```{r}
+b_p_nominal<-select(b_p,"Permit.Type", "Street.Number", "Street.Name", "Street.Suffix", "Current.Status", "Existing.Use", "Proposed.Use", "Existing.Construction.Type", "Proposed.Construction.Type", "Zipcode", "Plansets", "Supervisor.District","Neighborhoods...Analysis.Boundaries")
+```
+  Convert the columns to factors and change the data.frame to a sparse matrix for further rearch.
+```{r}
+b_p_apriori<- b_p_nominal
+for (i in 1:13) {
+  b_p_apriori[[names(b_p_apriori)[i]]]<-as.factor(b_p_apriori[[names(b_p_apriori)[i]]])
+}
+b_p_sparse_matrix_1<-as(b_p_apriori,"transactions")
+```
+
+## Begin Searching 
+ 
+  Start search frequent items using apriori method. Set paramaeter support=0.06, confidence=0.9, minlen=8. Sort the rules by their lift values and the show top 4 of them, which with a lift of more than 7.
+
+```{r}
+library(arules)
+library(arulesViz)
+
+
+rules<-apriori(b_p_sparse_matrix_1,parameter = list(support=0.06,confidence=0.9,minlen=6,maxlen=12),control = list(verbose=T))
+
+rules<-sort(rules,by="lift")
+plot(rules)
+plot(rules[1:10],method = "graph")
+inspect(rules[1:10])
+```
+  From the scatter plot above, most of the rules are of high value with a lfit of more than 4. We inspect the 10 rules with the highest lift. As shown in the rules, a building permit type 8(otc alterations) with existing and proposed construction type of 5(wood frame) are likely to remian its original use as an office building or 2 family dwelling. And a building with type 8 permission, an existing construction of type 1 and an used as an office is usually located in financial district, just as we expect. 
+  
+## Some More Exploration
+### About Street Suffix
+  Since the item "Street Suffix" once shows up as one of the rhs of the rules, it makes me wonder whether the suffix of a street is somewhat a result of the kind of buildings on it. So I run the following script in order to look for all rules with a rhl relating to the suffix "St", "Av" and "Wy", three most common used suffix. 
+
+```{r}
+rules_st<-apriori(b_p_sparse_matrix_1,parameter = list(support=0.06,confidence=0.9,minlen=2,maxlen=13),appearance=list(rhs=c("Street.Suffix=St","Street.Suffix=Av","Street.Suffix=Wy"),default="lhs"))
+rules_st<-sort(rules_st,by="lift")
+inspect(rules_st[1:10])
+```
+  The ruels found are all of little value(lift close to 1), suggest that there is no relation with the street suffix and the building type on the street.
+  
+### Finding the specific area occupied by buildings of a certain type of use.
+  It's common that some certain types of buildings concentrate in a specific area in a city. The following script use "food/beverage hndlng" as an example to explore this relationship.
+  From the first rule below we know that "Tendorloin" is the place of food industry.
+```{r}
+rules_food<-apriori(b_p_sparse_matrix_1,parameter = list(support=0.001,confidence=0.9,minlen=3,maxlen=12))
+rules_food<-subset(rules_food,items %in% "Existing.Use=food/beverage hndlng")
+rules_food<-sort(rules_food,by="lift")
+
+inspect(rules_food[1:10])
+```
+  We can also use this method in another way to find out the main kind of building in a certain area. Take "Castro/Upper Market" as an example.
+```{r}
+rules_Castro<-apriori(b_p_sparse_matrix_1,parameter = list(support=0.005,confidence=0.7,minlen=8,maxlen=12))
+rules_Castro<-subset(rules_Castro,items %in% "Neighborhoods...Analysis.Boundaries=Castro/Upper Market")
+rules_Castro<-sort(rules_Castro,by="lift")
+
+inspect(rules_Castro[1:10])
+```
+
