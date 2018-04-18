@@ -1,5 +1,5 @@
 # data_mingding_course_homework
-data mining homework 1
+data mining homework
 
 datasets: Building_Permits.csv and NFL Play by Play 2009-2017 (v4).csv
 
