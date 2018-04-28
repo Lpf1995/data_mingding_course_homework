@@ -9,3 +9,6 @@ Homework1: homework_Building_Permits.Rmd, homework_NLF_data.Rmd, homework_Buildi
 
 Homework2: Homework2.Rmd, Homework2.html
   In the Rmd files are the R code used. The html file is the reprot which outputed directly from the R markdown.
+
+Homework3:Data_Mining_Homework3.Rmd, Data_Mining_Homework3.pdf, Data_Mining_Homework3.html
+  In the Rmd file is all the code of the homework. The pdf and the html are 2 versions of the report. Both of them are directly outputed from the R markdown. They should be the same. However, the plots of the pdf seem to be better than those in html.
