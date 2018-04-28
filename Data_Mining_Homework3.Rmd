@@ -1,0 +1,370 @@
+---
+title: "Data Mining Homework3(Titanic)"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+  In this homework, I consider the requirement of "classification" is equal to supervised learning and the requirement of "clustering" is equal to unsupervised learning. I choose the titanic data set which contains part of a list of passengers on Titanic. The list contains the personal information of the passengers including age, Name, sex, Cabin, family, fare and whether they survived the that famous disaster.
+  The target of machine learning is to predict whether a specific person would survived if his personal information is given. However, it seems that the Kaggle does not offer a test set whit the correct test label. So, I only use the training set and use resubstitution error to measure the quality of a model. I also use 10-fold cross-validation to optimize the parameters of model in order to avoid over-fitting. Besides, the cross-validation error can also be considered as an indication of the quality of the model.
+
+## Data Import and Pre-processing
+
+### Data Import and Summary
+
+  First, import the package necessary for data pre-processing.
+```{r warning=FALSE}
+library(dplyr)
+library(plyr)
+```
+
+  The data titanic comes from Kaggle. It's part of the list of passengers on titanic. From the summary below we know it contains 
+
+```{r}
+titanic_train<-read.csv("train.csv")
+summary(titanic_train)
+```
+
+
+### Data Pre-processing: Fare_Per_Person
+
+  The fare attribute is indeed the price per ticket but what we need is the fare per person, so we have to check the ticket number to find out whether there exist people share a ticket with others.
+```{r}
+ticket_counts<-plyr::count(titanic_train[["Ticket"]])
+ticket_multi<-ticket_counts[which(ticket_counts$freq>1),]
+ticket_multi[1:10,]
+```
+  
+  After having a look at the ticket_multi, we recognize that many people share a ticket number with others, which means that the "fare" of these people is actually the fare of more than one person. This must be fixed.
+
+```{r}
+titanic_train[["Fare_Per_Person"]]<-titanic_train[["fare"]]
+for (i in 1:42) {
+  titanic_train[which(as.character(titanic_train[["Ticket"]])==as.character(ticket_multi[i,1])),"Fare_Per_Person"]<-titanic_train[which(titanic_train[["Ticket"]]==ticket_multi[i,1]),"Fare"]/ticket_multi[i,2]
+}
+titanic_train[which(is.na(titanic_train[["Fare_Per_Person"]])),"Fare_Per_Person"]<-titanic_train[which(is.na(titanic_train[["Fare_Per_Person"]])),"Fare"]
+```
+
+
+
+```{r}
+aggregate(x=titanic_train[c('Fare_Per_Person')], by = list(titanic_train$Embarked, titanic_train$Pclass), FUN=mean)
+```
+
+### Data Pre-processing: Extraction of Title From Name
+  
+  At first I thought the names of passengers have nothing to do with their possibility of survival. But then I noticed that there are NA values in "age" and the names contain the title of passengers, which can help to fill the missing values in age.
+```{r}
+names <- titanic_train$Name
+title <-  gsub("^.*, (.*?)\\..*$", "\\1", names)
+
+titanic_train$title <- title
+
+table(title)
+```
+  The most titles are those directly relative to age and sex, which is exactly what we want. And rare titles which also tell us about sex and age of a person are converted to the common titles of the same meaning. But rare titles like "Don" which tell us nothing are simply refereed as "Rare Title". 
+```{r}
+titanic_train$title[titanic_train$title == 'Mlle']<- 'Miss' 
+titanic_train$title[titanic_train$title == 'Ms']<- 'Miss'
+titanic_train$title[titanic_train$title == 'Mme']<- 'Mrs' 
+titanic_train$title[titanic_train$title == 'Lady']<- 'Miss'
+titanic_train$title[titanic_train$title == 'Dona']<- 'Miss'
+
+```
+
+```{r}
+titanic_train$title[!(titanic_train$title %in% c('Master', 'Miss', 'Mr', 'Mrs'))] <- "Rare Title"
+titanic_train$title <- as.factor(titanic_train$title)
+```
+
+### Data Pre-processing: Extraction of Family From Sibsp and Parch
+  
+  The attribute "Sibsp" and "Parch" both contain the family information of a person. We combine the two attribute into "Family", which is "Sibsp" + "Parch" + 1(the person himself).
+```{r}
+titanic_train[["Family"]]<-titanic_train$SibSp+titanic_train$Parch+1
+```
+
+### Data Pre-processing: Dealing With Missing Age Values
+
+  Use linear model to fit the age. We assume that age is somewhat relative to Pclass, Sex, SibSp, Parch and title.
+```{r}
+AgeLM <- lm(Age ~ Pclass + Sex + SibSp + Parch + title, data=titanic_train[!is.na(titanic_train$Age),])
+summary(AgeLM)
+```
+
+```{r}
+titanic_train$AgeLM <- predict(AgeLM, titanic_train)
+```
+  Have a look at the result of linear model.
+```{r}
+titanic_train[(is.na(titanic_train$Age) & titanic_train$AgeLM <18), c('Sex', 'SibSp', 'Parch', 'title', 'Pclass', 'Survived', 'AgeLM')]
+```
+
+```{r}
+titanic_train[["Age_Na_Free"]]<-titanic_train$Age
+titanic_train[which(is.na(titanic_train[["Age_Na_Free"]])),"Age_Na_Free"]<-titanic_train[which(is.na(titanic_train[["Age_Na_Free"]])),"AgeLM"]
+```
+  From the result above we notice that some missing ages filled by the linear model can be ridiculous. But using the age bands to replace actual number of ages can fix that. Because assumed that linear model is somewhat correct, the actual age of the person whose AgeLM is smaller than 0 can not too big. So we can use the age band "child" to describe that.
+```{r}
+titanic_train[["Age_Band"]]<-titanic_train$Age
+for (i in 1:891) {
+  if(titanic_train[i,"Age_Na_Free"]<=13){
+    titanic_train[i,"Age_Band"]<-"Child"
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>13 & titanic_train[i,"Age_Na_Free"]<=17){
+    titanic_train[i,"Age_Band"]<-"Teens"
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>17 & titanic_train[i,"Age_Na_Free"]<=26){
+    titanic_train[i,"Age_Band"]<-"Young"
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>26 & titanic_train[i,"Age_Na_Free"]<=42){
+    titanic_train[i,"Age_Band"]<-"Mid_Age"
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>42 & titanic_train[i,"Age_Na_Free"]<=57){
+    titanic_train[i,"Age_Band"]<-"Older_Than_Mid_Age"
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>57 ){
+    titanic_train[i,"Age_Band"]<-"Old"
+  }
+  
+}
+```
+
+
+
+### Data Pre-processing: Build The Final Data Set verson 1
+  
+  The final data set contains title, Fare_Per_Person, Family, Pclass, Sex, Age_Band and Survived. We will use the decision tree method and this data is perfect for a decision tree model or a random forest.
+  However if we want to use some model which can only deal with "numeric" attributes, this data set still need further processing. The further processing is probably about changing the nominal attributes to numeric ones and the normalization of them.
+
+
+```{r}
+titanic_ready_1<-titanic_train[,c("title","Fare_Per_Person","Family","Pclass","Sex","Age_Band","Survived")]
+```
+
+### Data Nomailzation
+
+  In this part, there are two targets: change the nominal attribute to numeric, normalize the data. 
+  First, change the nominal attribute "Age_Band" and Sex to numeric attributes. In "Age_Band", the values are changed to numbers 1 to 6 to describe the 6 bands. In "Sex", use 1 to stand for "male" and 0 to stand for "female".
+  
+```{r}
+titanic_ready_3<-titanic_ready_1
+```
+  
+  
+```{r}
+
+titanic_train[["Age_Band_Numeric"]]<-titanic_train$Age
+for (i in 1:891) {
+  if(titanic_train[i,"Age_Na_Free"]<=13){
+    titanic_train[i,"Age_Band_Numeric"]<-1
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>13 & titanic_train[i,"Age_Na_Free"]<=17){
+    titanic_train[i,"Age_Band_Numeric"]<-2
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>17 & titanic_train[i,"Age_Na_Free"]<=26){
+    titanic_train[i,"Age_Band_Numeric"]<-3
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>26 & titanic_train[i,"Age_Na_Free"]<=42){
+    titanic_train[i,"Age_Band_Numeric"]<-4
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>42 & titanic_train[i,"Age_Na_Free"]<=57){
+    titanic_train[i,"Age_Band_Numeric"]<-5
+  }
+  
+  if(titanic_train[i,"Age_Na_Free"]>57 ){
+    titanic_train[i,"Age_Band_Numeric"]<-6
+  }
+  
+}
+
+titanic_ready_3[["Age_Band_Numeric"]]<-titanic_train$Age_Band_Numeric
+titanic_ready_3$Age_Band_Numeric<-as.numeric(titanic_ready_3$Age_Band_Numeric)
+
+```
+  
+```{r}
+titanic_train[["Sex_Numeric"]]<-titanic_train$Sex
+titanic_train$Sex_Numeric<-as.numeric(titanic_train$Sex_Numeric)
+for (i in 1:891) {
+  if(as.character(titanic_train[i,"Sex"])=="male"){
+    titanic_train[i,"Sex_Numeric"]<- 1
+  }
+  
+  if(as.character(titanic_train[i,"Sex"])=="female"){
+    titanic_train[i,"Sex_Numeric"]<- 0
+  }
+  
+ 
+  
+}
+
+titanic_ready_3[["Sex_Numeric"]]<-titanic_train$Sex_Numeric
+```
+
+
+```{r}
+titanic_ready_3<-titanic_ready_3[,c("Fare_Per_Person","Family","Pclass","Sex_Numeric","Age_Band_Numeric","Survived")]
+
+```
+
+  Begin normalization.
+
+```{r}
+for (i in 1:5) {
+  titanic_ready_3[,i]<-scale(titanic_ready_3[,i],center = TRUE, scale = TRUE)
+}
+```
+
+
+## Classification(Survived Or Not)
+ 
+  In this section, two method are presented. I choose the SVM model in package"e1071" and decision tree model in package "rpart". The decision tree is a model that can be quite easy to visualized and the SVM model is famous for its simple algorithm and strong power. That's why I choose them. Besides, both packages have an build_in function for 10-fold-cross-validation, which is very convenient.
+
+### Decision Tree Classification
+ 
+  First we should convert the "Age_Band" and "Survived" to factor, which is the requirement of training a decision tree model. Then a decision tree is trained. But this tree can not be the final model used to make prediction. Some optimization is needed.
+```{r}
+titanic_ready_1[,"Age_Band"]<-as.factor(titanic_ready_1$Age_Band)
+titanic_ready_1[,"Survived"]<-as.factor(titanic_ready_1$Survived)
+library(rpart)
+decision_tree_1=rpart(Survived~.,data=titanic_ready_1,method="class",control = rpart.control(minsplit = 5,xval=10))
+# a original tree is trained. The "xval" means the number of folds of cross-validation.
+
+print(decision_tree_1)
+```
+  Visualize the original tree.
+```{r}
+library(rpart.plot)
+rpart.plot(decision_tree_1)
+```
+
+  Import the package caret which is necessary for following procedures. Form the output of the script below, we know that the accuracy of cross-validation can be calculated as  (root node error)*xerror, which is about 17%. It seems that the effect is not bad. 
+```{r}
+library(caret)
+perdict_DT=predict(decision_tree_1,data=titanic_ready_1,type="class")
+
+printcp(decision_tree_1)
+```
+  We choose the cp value with the lowest xerror and use this value to prune the original tree. This can avoid the problem of over-fitting.
+```{r}
+decision_tree_2<-prune(decision_tree_1, cp= decision_tree_1$cptable[which.min(decision_tree_1$cptable[,"xerror"]),"CP"]) 
+```
+  Use this tree to make the prediction. In the confusion matrix below, the quality of the model is shown clearly. The total accuracy is about 83% with a kappa of about 0.64. The sensitivity and specificity is also OK. The ROC plot below confirms that the quality of this model is acceptable.
+```{r}
+perdict_DT_2=predict(decision_tree_2,data=titanic_ready_1,type="class")
+confusionMatrix(perdict_DT_2,titanic_ready_1$Survived)
+printcp(decision_tree_2)
+
+```
+
+```{r}
+library(pROC)
+modelroc <- roc(titanic_ready_1$Survived,as.numeric((perdict_DT_2)))
+plot(modelroc, print.auc=TRUE, auc.polygon=TRUE, grid=c(0.1, 0.2),
+     grid.col=c("green", "red"), max.auc.polygon=TRUE,
+     auc.polygon.col="skyblue", print.thres=TRUE)
+```  
+  
+  From the decision tree below we can get some useful information about the survival rate of a Titanic passenger. If his title was Mr or something rare, which means he was probably a man, his chance to survived would be small. Also, People of "smaller Pclass", which means they were probably rich or noble people, have better chance to survived. The family size of a passenger also affects his possibility of survival.
+```{r}
+rpart.plot(decision_tree_2)
+```
+
+### SVM
+  
+  The package e1071 is imported and a series of SVM models of different cost and gamma are trained. A plot is created to visualize the accuracy of all models with different parameters. The model with the best accuracy is chosen as the best model for prediction.
+
+```{r}
+library(e1071)
+titanic_ready_3$Survived<-as.factor(titanic_ready_3$Survived)
+tObj<-tune.svm(Survived~.,data=titanic_ready_3,type="C-classification",kernel="radial",    cost=c(0.001,0.01,0.1,1,5,10,100,1000),gamma=c(0.5,1,2,3,4),scale=FALSE)
+
+## Visualize the accuracy of all models with different parameters
+plot(tObj,xlab=expression(gamma),ylab="cost",main="error rate with different cost and gamma",nlevels=10,color.palette=terrain.colors)
+BestSvm<-tObj$best.model
+```
+
+  Use the best model to make the prediction and analysis the quality of the model. The total accuracy is about 83%, and the kappa is about 0.65. This model is also not bad. The sensitivity, specificity and the ROC plot are also presented.
+
+```{r}
+
+tit_svm_pre<-predict(BestSvm,titanic_ready_3)
+confusionMatrix(tit_svm_pre,titanic_ready_3$Survived)
+
+```
+
+```{r}
+library(pROC)
+modelroc <- roc(titanic_ready_3$Survived,as.numeric(tit_svm_pre))
+plot(modelroc, print.auc=TRUE, auc.polygon=TRUE, grid=c(0.1, 0.2),
+     grid.col=c("green", "red"), max.auc.polygon=TRUE,
+     auc.polygon.col="skyblue", print.thres=TRUE)
+```
+  We use the following 2 plot to show the information we get from the model. The age vs sex plot shows that female are young children were likely to survived. The Fare_Per_Person vs Pclass plot shows that only rich or noble people were likely to survived. So we can make the conclusion that female and children in the "rich or noble" group had better chance to survived. But in the "not so rich or not so noble" group, the possibility of survival could be terrible. The famous law of "female or child leave first" probably only existed in "rich or noble" group.
+
+```{r}
+plot(x=BestSvm,data=titanic_ready_3,formula=Age_Band_Numeric~Sex_Numeric,svSymbol="#",dataSymbol="*",grid=100)
+```
+
+```{r}
+plot(x=BestSvm,data=titanic_ready_3,formula=Fare_Per_Person~Pclass,svSymbol="#",dataSymbol="*",grid=100)
+```
+
+
+## Clustering
+  
+  In this section, 2 method are presented to build unsupervised learning model. The target is still about "Survived" but is a little different from the supervised learning models above. Here we want to use clustering method to divide the data set into 2 groups. We will see whether the 2 group obtained can reflect the survived status of passengers.
+
+### Density-Based Spatial Clustering of Applications with Noise(DBSCAN)
+  
+  The first clustering model is famous DBSCAN. After setting the eps and MinPts and given a set of points in some space, it groups together points that are closely packed together (points with many nearby neighbors), marking as outliers points that lie alone in low-density regions (whose nearest neighbors are too far away).
+  The table below shows that the clustering result of DBSCAN is similar to the groups divided by survived or not. The data point with class "0" are outliers according to the DBSCAN.
+  The "accuracy" is about 78%, not as good as SVM and decision tree model above. But since this is unsupervised learning, I think the accuracy is not too bad.
+  The visualization of the clustering is presented. The points are projected on a 2-D plot.
+
+```{r}
+library(fpc)
+items<-sample(1:891,891)
+ data=titanic_ready_3[items,1:5]
+ tit_ds<-dbscan(data,eps=1.7,MinPts = 15)
+ table(tit_ds$cluster,titanic_ready_3$Survived[items])
+ plotcluster(data,tit_ds$cluster)
+ 
+```
+
+### K-Medoids
+
+  This method is very common. Unlike K-means method use geometrical center of some closely located data points calculated by the model as the center of cluster, K-medoids use certain data points as the center of cluster, which reduce the impact of some outliers on the whole model. This method is clearly more robust than the traditional k-means.
+  After setting the number of cluster as 2, we can see that the 2 cluster obtained from k-medoids are similar to the groups divided by whether the passenger survived. The "accuracy" is about 77%.
+  The visualization of the k-medoids is also presented.
+```{r}
+library(cluster)
+tit_pam<-pam(titanic_ready_3[,1:5],2)
+table(tit_pam$clustering,titanic_ready_3$Survived)
+plot(tit_pam)
+```
+
+## Conclusions and Futher Works
+  
+  In this small project, 4 machine learning model are trained to obtain the prediction of "Survived" of the part of passengers on Titanic according to their personal information. Some pre-processing work has been done including new features extraction, NA filling and the conversion of form suitable for the training of models. The quality of the 4 models are assessed and they are not bad. We also visualize the 4 models to make it more clearly. Some useful conclusions about the relationship of a passenger's information and the possibility of his survival are drawn. 
+  Further work includes using some more powerful models and inspecting the data set more carefully to find some more feature engineering method and most importantly, obtain the test set and use test set to assess the performance of models.
+
+
+
+
+
+
+
